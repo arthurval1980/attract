@@ -9,11 +9,9 @@ jobs:
 
     steps:
 
-      # ── 1. Baixa o código-fonte ──────────────────────────────────────
       - name: Checkout Attract Mode
         uses: actions/checkout@v4
 
-      # ── 2. Instala ferramentas base e MinGW ──────────────────────────
       - name: Install build tools
         run: |
           sudo apt-get update -y
@@ -23,16 +21,12 @@ jobs:
             autoconf automake libtool python3 \
             mingw-w64 mingw-w64-tools
 
-      # ── 3. Define variáveis de ambiente ──────────────────────────────
-      - name: Set environment variables
-        run: |
-          echo "PREFIX=$HOME/prefix"          >> $GITHUB_ENV
-          echo "HOST=x86_64-w64-mingw32"      >> $GITHUB_ENV
-
       - name: Create prefix directory
-        run: mkdir -p $HOME/prefix/{bin,include,lib/pkgconfig}
+        run: |
+          mkdir -p $HOME/prefix/bin
+          mkdir -p $HOME/prefix/include
+          mkdir -p $HOME/prefix/lib/pkgconfig
 
-      # ── 4. Compila zlib ──────────────────────────────────────────────
       - name: Build zlib
         run: |
           cd /tmp
@@ -40,13 +34,12 @@ jobs:
           tar xzf zlib-1.3.1.tar.gz
           cd zlib-1.3.1
           make -f win32/Makefile.gcc \
-            PREFIX=${HOST}- \
-            BINARY_PATH=$PREFIX/bin \
-            INCLUDE_PATH=$PREFIX/include \
-            LIBRARY_PATH=$PREFIX/lib \
+            PREFIX=x86_64-w64-mingw32- \
+            BINARY_PATH=$HOME/prefix/bin \
+            INCLUDE_PATH=$HOME/prefix/include \
+            LIBRARY_PATH=$HOME/prefix/lib \
             SHARED_MODE=1 install
 
-      # ── 5. Compila libpng ────────────────────────────────────────────
       - name: Build libpng
         run: |
           cd /tmp
@@ -54,13 +47,15 @@ jobs:
           tar xzf libpng-1.6.43.tar.gz
           cd libpng-1.6.43
           ./configure \
-            --host=$HOST --prefix=$PREFIX \
-            --enable-shared --disable-static \
-            CPPFLAGS="-I$PREFIX/include" \
-            LDFLAGS="-L$PREFIX/lib"
-          make -j$(nproc) && make install
+            --host=x86_64-w64-mingw32 \
+            --prefix=$HOME/prefix \
+            --enable-shared \
+            --disable-static \
+            CPPFLAGS="-I$HOME/prefix/include" \
+            LDFLAGS="-L$HOME/prefix/lib"
+          make -j$(nproc)
+          make install
 
-      # ── 6. Compila libogg ────────────────────────────────────────────
       - name: Build libogg
         run: |
           cd /tmp
@@ -68,11 +63,13 @@ jobs:
           tar xzf libogg-1.3.5.tar.gz
           cd libogg-1.3.5
           ./configure \
-            --host=$HOST --prefix=$PREFIX \
-            --enable-shared --disable-static
-          make -j$(nproc) && make install
+            --host=x86_64-w64-mingw32 \
+            --prefix=$HOME/prefix \
+            --enable-shared \
+            --disable-static
+          make -j$(nproc)
+          make install
 
-      # ── 7. Compila libvorbis ─────────────────────────────────────────
       - name: Build libvorbis
         run: |
           cd /tmp
@@ -80,13 +77,15 @@ jobs:
           tar xzf libvorbis-1.3.7.tar.gz
           cd libvorbis-1.3.7
           ./configure \
-            --host=$HOST --prefix=$PREFIX \
-            --enable-shared --disable-static \
-            CPPFLAGS="-I$PREFIX/include" \
-            LDFLAGS="-L$PREFIX/lib"
-          make -j$(nproc) && make install
+            --host=x86_64-w64-mingw32 \
+            --prefix=$HOME/prefix \
+            --enable-shared \
+            --disable-static \
+            CPPFLAGS="-I$HOME/prefix/include" \
+            LDFLAGS="-L$HOME/prefix/lib"
+          make -j$(nproc)
+          make install
 
-      # ── 8. Compila libflac ───────────────────────────────────────────
       - name: Build libflac
         run: |
           cd /tmp
@@ -94,16 +93,18 @@ jobs:
           tar xJf flac-1.4.3.tar.xz
           cd flac-1.4.3
           ./configure \
-            --host=$HOST --prefix=$PREFIX \
-            --enable-shared --disable-static \
+            --host=x86_64-w64-mingw32 \
+            --prefix=$HOME/prefix \
+            --enable-shared \
+            --disable-static \
             --disable-doxygen-docs \
             --disable-xmms-plugin \
             --disable-cpplibs \
-            CPPFLAGS="-I$PREFIX/include" \
-            LDFLAGS="-L$PREFIX/lib"
-          make -j$(nproc) && make install
+            CPPFLAGS="-I$HOME/prefix/include" \
+            LDFLAGS="-L$HOME/prefix/lib"
+          make -j$(nproc)
+          make install
 
-      # ── 9. Compila OpenAL-Soft ───────────────────────────────────────
       - name: Build OpenAL-Soft
         run: |
           cd /tmp
@@ -114,17 +115,17 @@ jobs:
           mkdir build && cd build
           cmake .. \
             -DCMAKE_SYSTEM_NAME=Windows \
-            -DCMAKE_C_COMPILER=${HOST}-gcc \
-            -DCMAKE_CXX_COMPILER=${HOST}-g++ \
-            -DCMAKE_RC_COMPILER=${HOST}-windres \
-            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+            -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+            -DCMAKE_INSTALL_PREFIX=$HOME/prefix \
             -DALSOFT_UTILS=OFF \
             -DALSOFT_EXAMPLES=OFF \
             -DALSOFT_TESTS=OFF \
             -DBUILD_SHARED_LIBS=ON
-          make -j$(nproc) && make install
+          make -j$(nproc)
+          make install
 
-      # ── 10. Compila freetype ─────────────────────────────────────────
       - name: Build freetype
         run: |
           cd /tmp
@@ -132,15 +133,18 @@ jobs:
           tar xzf freetype-2.13.2.tar.gz
           cd freetype-2.13.2
           ./configure \
-            --host=$HOST --prefix=$PREFIX \
-            --enable-shared --disable-static \
-            --with-zlib --with-png \
+            --host=x86_64-w64-mingw32 \
+            --prefix=$HOME/prefix \
+            --enable-shared \
+            --disable-static \
+            --with-zlib \
+            --with-png \
             --without-harfbuzz \
-            CPPFLAGS="-I$PREFIX/include" \
-            LDFLAGS="-L$PREFIX/lib"
-          make -j$(nproc) && make install
+            CPPFLAGS="-I$HOME/prefix/include" \
+            LDFLAGS="-L$HOME/prefix/lib"
+          make -j$(nproc)
+          make install
 
-      # ── 11. Compila SFML 2.6.1 ───────────────────────────────────────
       - name: Build SFML
         run: |
           cd /tmp
@@ -151,11 +155,11 @@ jobs:
           mkdir build && cd build
           cmake .. \
             -DCMAKE_SYSTEM_NAME=Windows \
-            -DCMAKE_C_COMPILER=${HOST}-gcc \
-            -DCMAKE_CXX_COMPILER=${HOST}-g++ \
-            -DCMAKE_RC_COMPILER=${HOST}-windres \
-            -DCMAKE_INSTALL_PREFIX=$PREFIX \
-            -DCMAKE_FIND_ROOT_PATH=$PREFIX \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+            -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+            -DCMAKE_INSTALL_PREFIX=$HOME/prefix \
+            -DCMAKE_FIND_ROOT_PATH=$HOME/prefix \
             -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
             -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
             -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
@@ -163,14 +167,14 @@ jobs:
             -DSFML_BUILD_DOC=OFF \
             -DSFML_USE_SYSTEM_DEPS=ON \
             -DBUILD_SHARED_LIBS=ON \
-            -DFREETYPE_INCLUDE_DIR_freetype2=$PREFIX/include/freetype2 \
-            -DFREETYPE_INCLUDE_DIR_ft2build=$PREFIX/include \
-            -DFREETYPE_LIBRARY=$PREFIX/lib/libfreetype.dll.a \
-            -DOPENAL_INCLUDE_DIR=$PREFIX/include \
-            -DOPENAL_LIBRARY=$PREFIX/lib/libOpenAL32.dll.a
-          make -j$(nproc) && make install
+            -DFREETYPE_INCLUDE_DIR_freetype2=$HOME/prefix/include/freetype2 \
+            -DFREETYPE_INCLUDE_DIR_ft2build=$HOME/prefix/include \
+            -DFREETYPE_LIBRARY=$HOME/prefix/lib/libfreetype.dll.a \
+            -DOPENAL_INCLUDE_DIR=$HOME/prefix/include \
+            -DOPENAL_LIBRARY=$HOME/prefix/lib/libOpenAL32.dll.a
+          make -j$(nproc)
+          make install
 
-      # ── 12. Compila FFmpeg ───────────────────────────────────────────
       - name: Build FFmpeg
         run: |
           cd /tmp
@@ -178,8 +182,8 @@ jobs:
           tar xJf ffmpeg-6.1.1.tar.xz
           cd ffmpeg-6.1.1
           ./configure \
-            --prefix=$PREFIX \
-            --cross-prefix=${HOST}- \
+            --prefix=$HOME/prefix \
+            --cross-prefix=x86_64-w64-mingw32- \
             --arch=x86_64 \
             --target-os=mingw32 \
             --enable-cross-compile \
@@ -218,55 +222,51 @@ jobs:
             --enable-parser=vp9 \
             --enable-protocol=file \
             --pkg-config=pkg-config \
-            --extra-cflags="-I$PREFIX/include" \
-            --extra-ldflags="-L$PREFIX/lib"
-          make -j$(nproc) && make install
+            --extra-cflags="-I$HOME/prefix/include" \
+            --extra-ldflags="-L$HOME/prefix/lib"
+          make -j$(nproc)
+          make install
 
-      # ── 13. Compila o Attract Mode ───────────────────────────────────
       - name: Build Attract Mode
         run: |
-          export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-          export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig
+          export PKG_CONFIG_PATH=$HOME/prefix/lib/pkgconfig
+          export PKG_CONFIG_LIBDIR=$HOME/prefix/lib/pkgconfig
           make \
-            CC=${HOST}-gcc \
-            CXX=${HOST}-g++ \
-            STRIP=${HOST}-strip \
-            WINDRES=${HOST}-windres \
-            prefix=$PREFIX \
+            CC=x86_64-w64-mingw32-gcc \
+            CXX=x86_64-w64-mingw32-g++ \
+            STRIP=x86_64-w64-mingw32-strip \
+            WINDRES=x86_64-w64-mingw32-windres \
+            prefix=$HOME/prefix \
             USE_SYSTEM_SFML=1 \
             USE_SYSTEM_FFMPEG=1 \
-            CFLAGS="-I$PREFIX/include" \
-            LDFLAGS="-L$PREFIX/lib" \
+            CFLAGS="-I$HOME/prefix/include" \
+            LDFLAGS="-L$HOME/prefix/lib" \
             -j$(nproc)
 
-      # ── 14. Monta a pasta de distribuição ────────────────────────────
       - name: Assemble distribution folder
         run: |
           mkdir -p dist
 
-          # Executável principal
           cp attract.exe dist/
 
-          # DLLs que compilamos
-          cp $PREFIX/bin/*.dll dist/
+          cp $HOME/prefix/bin/*.dll dist/ 2>/dev/null || true
 
-          # DLLs de runtime do MinGW
           GCC_VER=$(x86_64-w64-mingw32-gcc -dumpversion | cut -d. -f1)
           MINGW_PATH="/usr/lib/gcc/x86_64-w64-mingw32/${GCC_VER}-win32"
-          [ -d "$MINGW_PATH" ] || MINGW_PATH="/usr/lib/gcc/x86_64-w64-mingw32/${GCC_VER}"
+          if [ ! -d "$MINGW_PATH" ]; then
+            MINGW_PATH="/usr/lib/gcc/x86_64-w64-mingw32/${GCC_VER}"
+          fi
 
           cp "$MINGW_PATH/libstdc++-6.dll"    dist/ 2>/dev/null || true
           cp "$MINGW_PATH/libgcc_s_seh-1.dll" dist/ 2>/dev/null || true
           cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll dist/ 2>/dev/null || true
 
-          # Recursos do Attract Mode
-          [ -d config  ] && cp -r config  dist/
-          [ -d layouts ] && cp -r layouts dist/
+          if [ -d config ];  then cp -r config  dist/; fi
+          if [ -d layouts ]; then cp -r layouts dist/; fi
 
-          echo "=== Conteudo da pasta dist ==="
+          echo "Conteudo da pasta dist:"
           ls -lh dist/
 
-      # ── 15. Faz upload do resultado como artifact ────────────────────
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
